@@ -188,7 +188,7 @@ export async function POST(req: Request) {
         });
       }
     } catch (e) {
-      console.log("Image skip");
+      console.log("Image skip:", e);
     }
 
     drawLine(height - 560);
@@ -236,25 +236,26 @@ export async function POST(req: Request) {
     // 8. Generate PDF
     const pdfBytes = await pdfDoc.save();
 
-    // FIX: Convert Uint8Array into a compatible ArrayBuffer
-    const pdfArrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
-
-    new Uint8Array(pdfArrayBuffer).set(pdfBytes);
-
     // 9. Return PDF Response
-    return new NextResponse(pdfArrayBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${deedNumber}.pdf"`,
-      },
-    });
+    // TypeScript compatibility fix for NextResponse BodyInit
+    return new NextResponse(
+      pdfBytes as unknown as BodyInit,
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${deedNumber}.pdf"`,
+        },
+      }
+    );
 
   } catch (error: unknown) {
     console.error("PDF Generator Error:", error);
 
     const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
+      error instanceof Error
+        ? error.message
+        : "Unknown error";
 
     return new NextResponse(
       `Internal Error: ${errorMessage}`,
